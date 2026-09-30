@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from dotenv import load_dotenv
-from openai import OpenAI, OpenAIError
+from openai import OpenAI, OpenAIError, RateLimitError, APIConnectionError
 
 load_dotenv(Path(__file__).resolve().with_name(".env"))
 
@@ -243,6 +243,8 @@ class TextGenerator(Protocol):
 
 
 class OpenAIGenerator:
+    provider = "openai"
+
     def __init__(self, max_output_tokens: int = 300) -> None:
         api_key = os.getenv("OPENAI_API_KEY", "").strip()
         self.model = os.getenv("OPENAI_MODEL", "").strip()
@@ -264,6 +266,73 @@ class OpenAIGenerator:
         if not answer:
             raise RuntimeError("OpenAI returned an empty answer")
         return answer
+
+
+class GeminiGenerator:
+    """Gemini through Google's OpenAI-compatible Chat Completions endpoint."""
+
+    provider = "gemini"
+
+    def __init__(self, max_output_tokens: int = 2048) -> None:
+        api_key = os.getenv("GEMINI_API_KEY", "").strip()
+        self.model = os.getenv("GEMINI_MODEL", "").strip()
+        if not api_key or not self.model:
+            raise RuntimeError("Set GEMINI_API_KEY and GEMINI_MODEL in .env")
+        self.client = OpenAI(
+            api_key=api_key,
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+            timeout=90.0,
+            max_retries=0,
+        )
+        self.max_output_tokens = max_output_tokens
+        # The configured free tier permits five requests per minute.
+        self.min_interval = 13.0
+        self._last_request = 0.0
+
+    def generate(self, prompt: str) -> str:
+        for attempt in range(4):
+            delay = self.min_interval - (time.monotonic() - self._last_request)
+            if delay > 0:
+                time.sleep(delay)
+            self._last_request = time.monotonic()
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=self.max_output_tokens,
+                )
+                break
+            except RateLimitError:
+                if attempt == 3:
+                    raise
+                print("Gemini rate limit: waiting 60 seconds before retry", flush=True)
+                time.sleep(60)
+            except APIConnectionError:
+                if attempt == 3:
+                    raise
+                print("Gemini connection interrupted: retrying in 15 seconds", flush=True)
+                time.sleep(15)
+        if not response.choices:
+            raise RuntimeError("Gemini returned no choices")
+        choice = response.choices[0]
+        if choice.finish_reason == "length":
+            raise RuntimeError("Gemini answer was truncated; increase max_output_tokens")
+        answer = (choice.message.content or "").strip()
+        if not answer:
+            raise RuntimeError("Gemini returned an empty answer")
+        return answer
+
+
+def configured_generator() -> TextGenerator:
+    """Explicit provider wins; otherwise prefer a configured Gemini key."""
+    provider = os.getenv("AI_PROVIDER", "").strip().lower()
+    if not provider:
+        provider = "gemini" if os.getenv("GEMINI_API_KEY", "").strip() else "openai"
+    if provider == "gemini":
+        return GeminiGenerator()
+    if provider == "openai":
+        return OpenAIGenerator()
+    raise RuntimeError("AI_PROVIDER must be gemini or openai")
 
 
 @dataclass(frozen=True)
@@ -299,7 +368,7 @@ class DomainAssistant:
         return cls(
             corpus_id,
             BM25Retriever(chunks),
-            generator if generator is not None else OpenAIGenerator(),
+            generator if generator is not None else configured_generator(),
             top_k,
         )
 
@@ -458,6 +527,7 @@ def generate_actual_answers(
         "generated_at": datetime.now(UTC).isoformat(),
         "agent": {
             "name": "domain-assistant",
+            "provider": getattr(assistant.generator, "provider", "custom"),
             "model": model,
             "top_k": top_k,
             "prompt_version": "1.0",
