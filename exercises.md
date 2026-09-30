@@ -209,7 +209,9 @@ python domain_assistant.py
 python evaluate_answers.py
 ```
 
-Actual answers generated_at: `2026-09-30T07:38:09.182066+00:00`; provider: `gemini`; model: `gemini-2.5-flash`. Gemini was selected by the learner instead of the starter's gpt-4o-mini.
+Thông tin lần sinh: `2026-09-30T07:38:09.182066+00:00`; nhà cung cấp: `gemini`;
+model: `gemini-2.5-flash`. Tôi dùng Gemini thay cho model mặc định
+`gpt-4o-mini` của starter và đã ghi rõ thay đổi này trong báo cáo.
 
 | ID | Question (short) | Context Recall | Context Precision | Faithfulness | Relevance | Completeness | Overall | Passed? | Failure Type |
 |----|------------------|----------------|-------------------|--------------|-----------|--------------|---------|---------|--------------|
@@ -331,19 +333,19 @@ và TruLens; chạy hoặc thiết kế một so sánh có cùng input dataset.
 | Setup complexity | Python package, dataset adapter và evaluator config | Python package, test cases và metric objects |
 | Metrics available | Faithfulness, context recall/precision, answer relevance | G-Eval, faithfulness, answer relevance, contextual metrics |
 | CI/CD integration | Có thể chạy pytest/script và lưu JSON | Có thể chạy pytest/script, threshold từng metric |
-| Kết quả trên cùng dataset | Chưa chạy package; core lab ghi pass rate 60.0% | Chưa chạy package; cần cùng actual answers để so sánh công bằng |
+| Kết quả trên cùng dataset | Chưa chạy package; core lab ghi pass rate 60.0% | Chưa chạy package; cần dùng cùng actual answers để so sánh công bằng |
 | Insight rút ra | RAGAS phù hợp phân tích retrieval + answer riêng | DeepEval phù hợp assertion theo test case và regression gate |
 
 - Scores có nhất quán không?
 - Framework nào strict hơn và vì sao?
 - Hai framework có tìm ra cùng failure cases không?
 
-> Đây là comparison design, không phải số liệu framework giả định. Hai framework
-> phải nhận cùng 20 questions, actual answers, gold evidence và retrieved chunks;
-> chỉ so sánh sau khi cố định model judge, rubric, temperature và mapping score.
-> Tôi chọn RAGAS nếu cần phân tích retrieval sâu, còn DeepEval nếu ưu tiên test
-> gate trong CI. Điểm overlap trong core hiện tại không thể gọi là kết quả của
-> hai framework này.
+> Đây là thiết kế so sánh, không phải số liệu framework giả định. Hai framework
+> phải nhận cùng 20 câu hỏi, actual answers, gold evidence và retrieved chunks;
+> chỉ so sánh sau khi cố định model judge, rubric, temperature và cách quy đổi
+> điểm. Tôi chọn RAGAS nếu cần phân tích retrieval sâu, còn DeepEval nếu ưu tiên
+> test gate trong CI. Điểm overlap trong core hiện tại không thể gọi là kết quả
+> của hai framework này.
 
 ### Exercise 3.5 — Retrieval Reranking (Bonus +5)
 
@@ -396,5 +398,5 @@ Hoàn thành kiểm tra cuối trong khoảng 16:50–17:00.
 - [x] Exercise 3.3 có rubric 1–5 và bias controls.
 - [x] `reflection.md` có ba failure analyses và regression strategy.
 - [x] Đã copy `template.py` thành `solution/solution.py`.
-- [ ] Exercise 3.4 chưa thực hiện (bonus framework comparison).
+- [x] Exercise 3.4 đã hoàn thành ở mức thiết kế so sánh; chưa chạy package thực tế.
 - [x] Exercise 3.5 hoàn thành (bonus reranking).

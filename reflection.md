@@ -6,7 +6,9 @@
 chạy thật bằng Gemini 2.5 Flash. Root cause từ Analyzer vẫn là gợi ý; kết luận
 được đối chiếu với gold evidence và retrieved chunks.
 
-Actual answers generated_at: `2026-09-30T07:38:09.182066+00:00`; provider: `gemini`; model: `gemini-2.5-flash`. Gemini was selected by the learner instead of the starter's gpt-4o-mini.
+Thông tin lần sinh actual answers: `2026-09-30T07:38:09.182066+00:00`;
+nhà cung cấp: `gemini`; model: `gemini-2.5-flash`. Tôi dùng Gemini thay cho
+model mặc định `gpt-4o-mini` và ghi nhận điều này khi diễn giải kết quả.
 
 Dùng kết quả thật trong `artifacts/benchmark_results.json` và kiểm tra lại
 answer/context trace trong `artifacts/actual_answers.json` trước khi kết luận.
@@ -19,12 +21,12 @@ answer/context trace trong `artifacts/actual_answers.json` trước khi kết lu
 
 | Metric | Average | Min | Max | Nhận xét |
 |---|---:|---:|---:|---|
-| Context Recall | 0.810 | 0.188 | 1.000 | Học viên nhận xét |
-| Context Precision | 0.932 | 0.583 | 1.000 | Học viên nhận xét |
-| Faithfulness | 0.784 | 0.273 | 1.000 | Học viên nhận xét |
-| Relevance | 0.553 | 0.312 | 0.857 | Học viên nhận xét |
-| Completeness | 0.623 | 0.257 | 1.000 | Học viên nhận xét |
-| Overall Score | 0.653 | 0.411 | 0.839 | Học viên nhận xét |
+| Context Recall | 0.810 | 0.188 | 1.000 | Độ phủ evidence khá tốt nhưng A01 thấp vì thiếu tài liệu scope trong top-k. |
+| Context Precision | 0.932 | 0.583 | 1.000 | Xếp hạng nhìn chung tốt, nhưng vẫn có noise ở các case khó. |
+| Faithfulness | 0.784 | 0.273 | 1.000 | Có câu trả lời đúng chính sách nhưng A01 có overlap thấp và bị gán hallucination. |
+| Relevance | 0.553 | 0.312 | 0.857 | Metric yếu nhất; model thường bỏ một ý hoặc trả thêm nội dung ngoài câu hỏi. |
+| Completeness | 0.623 | 0.257 | 1.000 | Cần cải thiện việc bao phủ điều kiện, ngoại lệ và bước tiếp theo. |
+| Overall Score | 0.653 | 0.411 | 0.839 | Chất lượng trung bình; 12/20 case pass theo ngưỡng core. |
 
 **Score interpretation**
 
@@ -99,9 +101,12 @@ Passed: False; Failure type: off_topic.
 | Why 4 | Tại sao cơ chế hiện tại chưa phát hiện hoặc xử lý được? | Quality gate hiện chỉ chấm overlap sau generation, không chặn câu trả lời thiếu claim bắt buộc trước khi trả. |
 | Why 5 | Root cause có thể hành động được là gì? | Thêm query expansion cho refund/status và kiểm tra bắt buộc policy limitation, support route, refund timing trong answer validator. |
 
-**Root cause từ `find_root_cause()`:**
+**Gợi ý nguyên nhân từ `find_root_cause()` (giữ nguyên output của code):**
 
 > Answer is missing key information — increase context window or improve generation
+
+> Diễn giải: Câu trả lời thiếu thông tin chính; cần kiểm tra context window và
+> chất lượng generation.
 
 **Bạn đồng ý hay không? Dẫn evidence từ trace:**
 
@@ -117,7 +122,7 @@ Passed: False; Failure type: off_topic.
 > quyền xem order/issue refund và không được biến policy timing thành status thật.
 
 
-Analyzer output (gợi ý, chưa xác minh): Answer is missing key information — increase context window or improve generation
+Gợi ý Analyzer (chưa xác minh): Answer is missing key information — increase context window or improve generation.
 
 ### Failure 2
 
@@ -161,7 +166,7 @@ Passed: False; Failure type: hallucination.
 > không chỉ word overlap.
 
 
-Analyzer output (gợi ý, chưa xác minh): Context is missing or irrelevant — improve retrieval
+Gợi ý Analyzer (chưa xác minh): Context is missing or irrelevant — improve retrieval.
 
 ### Failure 3
 
@@ -211,7 +216,7 @@ Passed: False; Failure type: off_topic.
 ---
 
 
-Analyzer output (gợi ý, chưa xác minh): Answer does not address the question — improve prompt clarity
+Gợi ý Analyzer (chưa xác minh): Answer does not address the question — improve prompt clarity.
 
 ## 3. Failure Clustering
 
